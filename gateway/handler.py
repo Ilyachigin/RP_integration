@@ -9,7 +9,10 @@ from Crypto.Random import get_random_bytes
 import config
 from client.http import send_request
 from utils.db import DatabaseStorage
-from schemas.payment import GatewayRequest, StatusRequest, GatewayCallback
+from schemas.payment import GatewayRequest
+from schemas.callback import GatewayCallback
+from schemas.status import GatewayStatus
+
 from gateway.builder import (
     gateway_body,
     gateway_status_param,
@@ -37,7 +40,7 @@ async def handle_pay(data: GatewayRequest):
     return response_handler('pay', response, url, gateway_payload, response['duration'])
 
 
-async def handle_status(data: StatusRequest):
+async def handle_status(data: GatewayStatus):
     raw_data = data.model_dump(exclude_none=True)
     gateway_token = gateway_status_param(raw_data)
     url = f"{config.GATEWAY_URL}/api/v1/payments/{gateway_token}"
@@ -54,8 +57,8 @@ async def handle_status(data: StatusRequest):
 
 async def handle_callback(data: GatewayCallback):
     raw_data = data.model_dump(exclude_none=True)
-
     bearer_token = db.get_token(raw_data.get("token"))
+
     signature = callback_signature(raw_data, bearer_token)
     if signature == raw_data.get("signature"):
         gateway_token, callback_body = gateway_callback_body(raw_data)
@@ -81,6 +84,8 @@ def callback_signature(data, bearer_token):
     signature_string = ''
 
     for value in params:
+        if data[value] in [None, ""]:
+            continue
         str_len = str(len(str(data[value])))
         signature_string += str_len + str(data[value])
 

@@ -1,5 +1,7 @@
 from gateway.handler import handle_pay, handle_status, handle_callback
-from schemas.payment import GatewayRequest, StatusRequest, GatewayCallback
+from schemas.payment import GatewayRequest
+from schemas.status import GatewayStatus
+from schemas.callback import GatewayCallback
 
 from fastapi import APIRouter
 
@@ -12,7 +14,7 @@ async def pay(data: GatewayRequest):
 
 
 @router.post("/status")
-async def status(data: StatusRequest):
+async def status(data: GatewayStatus):
     return await handle_status(data)
 
 

@@ -3,14 +3,16 @@ import copy
 
 from typing import Dict, Any
 
+import config
+
 
 def gateway_body(business_data: Dict) -> Dict:
     main_dict = main_params(business_data)
 
-    card = business_data.get("params").get("params")
+    card = business_data.get("params")
     card_dict = card_params(card)
 
-    customer = business_data.get("params").get("params")
+    customer = business_data.get("params")
     browser = customer.get("browser", {})
     customer_dict = customer_params(customer)
     browser_dict = browser_params(browser)
@@ -61,14 +63,14 @@ def customer_params(data: dict) -> Dict:
 
 def main_params(data: dict) -> Dict:
     params = {
-        "product": data.get("params").get("params").get("product"),
+        "product": data.get("payment", {}).get("product"),
         "amount": data.get("payment", {}).get("gateway_amount"),
         "currency": data.get("payment", {}).get("gateway_currency"),
-        "extra_return_param": data.get("params").get("params").get("extra_return_param"),
-        "order_number": data.get("params").get("params").get("order_number"),
+        "extra_return_param": data.get("params").get("extra_return_param"),
+        "order_number": data.get("params").get("order_number"),
         "redirect_success_url": data.get("payment", {}).get("redirect_success_url"),
         "redirect_fail_url": data.get("payment", {}).get("redirect_fail_url"),
-        "callback_url": data.get("callback_url")
+        "callback_url": f"{config.BASE_URL}/callback"
     }
     return {k: v for k, v in params.items() if v is not None}
 
@@ -159,7 +161,7 @@ def gateway_pay_response(response: dict, request_url: str, request_data: dict, d
         "status": "OK",
         "gateway_token": token,
         "result": result,
-        "processingUrl": processing_url,
+        "processing_url": processing_url,
         "redirect_request": response_redirect_params(response.get("redirectRequest", {}), token),
         "logs": response_logs_params('pay', request_url, request_data, response, duration)
     }

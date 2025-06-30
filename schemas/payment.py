@@ -1,4 +1,4 @@
-from pydantic import BaseModel, HttpUrl, ConfigDict
+from pydantic import BaseModel, HttpUrl
 from typing import Optional, Dict, Any
 
 
@@ -25,8 +25,6 @@ class InnerParams(BaseModel):
     email: str
     extra_return_param: Optional[str] = None
     order_number: Optional[str] = None
-    product: Optional[str]
-    ip: Optional[str] = None
     country: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
@@ -42,38 +40,17 @@ class PaymentInfo(BaseModel):
     token: str
     gateway_amount: int
     gateway_currency: str
+    product: str
+    ip: Optional[str] = None
     redirect_success_url: HttpUrl
     redirect_fail_url: HttpUrl
 
 
-class ParamsBlock(BaseModel):
-    params: Optional[InnerParams]
-
-
 class GatewayRequest(BaseModel):
-    params: ParamsBlock
+    params: Optional[InnerParams]
     payment: PaymentInfo
     settings: Optional[Dict[str, Any]]
     processing_url: Optional[HttpUrl]
     callback_url: Optional[HttpUrl]
     callback_3ds_url: Optional[HttpUrl]
     method_name: Optional[str]
-
-
-class PaymentStatus(BaseModel):
-    gateway_token: str
-
-
-class StatusRequest(BaseModel):
-    settings: str
-    params: Optional[Dict[str, Any]]
-    payment: PaymentStatus
-    method_name: str
-
-
-class GatewayCallback(BaseModel):
-    model_config = ConfigDict(extra='allow')
-    token: str
-    status: str
-    type: str
-    signature: str
