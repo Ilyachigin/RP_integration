@@ -8,6 +8,7 @@ from Crypto.Random import get_random_bytes
 
 import config
 from client.http import send_request
+from utils.db import DatabaseStorage
 from schemas.payment import GatewayRequest, StatusRequest, GatewayCallback
 from gateway.builder import (
     gateway_body,
@@ -17,17 +18,21 @@ from gateway.builder import (
     gateway_callback_body,
 )
 
-headers = {
-    "Authorization": f"Bearer {config.BEARER_TOKEN}",
-    "Content-Type": "application/json"
-}
+db = DatabaseStorage()
 
 
 async def handle_pay(data: GatewayRequest):
     url = f"{config.GATEWAY_URL}/api/v1/payments"
     raw_data = data.model_dump(exclude_none=True)
     gateway_payload = gateway_body(raw_data)
+
+    bearer_token = raw_data.get("settings").get("bearer_token")
+    headers = {
+        "Authorization": f"Bearer {bearer_token}",
+        "Content-Type": "application/json"
+    }
     response = send_request('POST', url, headers, jsonable_encoder(gateway_payload))
+    database_insert(response.get('response'), bearer_token)
 
     return response_handler('pay', response, url, gateway_payload, response['duration'])
 
@@ -36,6 +41,13 @@ async def handle_status(data: StatusRequest):
     raw_data = data.model_dump(exclude_none=True)
     gateway_token = gateway_status_param(raw_data)
     url = f"{config.GATEWAY_URL}/api/v1/payments/{gateway_token}"
+
+    bearer_token = raw_data.get("settings").get("bearer_token")
+    headers = {
+        "Authorization": f"Bearer {bearer_token}",
+        "Content-Type": "application/json"
+    }
+
     response = send_request('GET', url, headers, gateway_token)
     return response_handler('status', response, url, gateway_token, response['duration'])
 
@@ -43,11 +55,12 @@ async def handle_status(data: StatusRequest):
 async def handle_callback(data: GatewayCallback):
     raw_data = data.model_dump(exclude_none=True)
 
-    signature = callback_signature(raw_data)
+    bearer_token = db.get_token(raw_data.get("token"))
+    signature = callback_signature(raw_data, bearer_token)
     if signature == raw_data.get("signature"):
         gateway_token, callback_body = gateway_callback_body(raw_data)
 
-        secure_data = merchant_token_encrypt(config.BEARER_TOKEN, config.SIGN_KEY)
+        secure_data = merchant_token_encrypt(bearer_token, config.SIGN_KEY)
         jwt_payload = {
             **callback_body,
             "secure": secure_data}
@@ -62,7 +75,7 @@ async def handle_callback(data: GatewayCallback):
     return Response(content="ok", status_code=200)
 
 
-def callback_signature(data):
+def callback_signature(data, bearer_token):
     params = ["token", "type", "status", "extraReturnParam",
               "orderNumber", "amount", "currency", "gatewayAmount", "gatewayCurrency"]
     signature_string = ''
@@ -71,7 +84,7 @@ def callback_signature(data):
         str_len = str(len(str(data[value])))
         signature_string += str_len + str(data[value])
 
-    signature_string = signature_string + config.BEARER_TOKEN
+    signature_string = signature_string + bearer_token
     return hashlib.md5(signature_string.encode('utf-8')).hexdigest()
 
 
@@ -114,3 +127,10 @@ def response_handler(request_type, response, url, body, duration):
             "message": response["error"],
             "status_code": response.get("status_code")
         }
+
+def database_insert(data, bearer_token):
+    token = data.get("token")
+    if token:
+        db.insert_token(token, bearer_token)
+        db.delete_old_tokens()
+

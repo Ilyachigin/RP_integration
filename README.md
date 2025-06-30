@@ -1,0 +1,1 @@
+Database init: sqlite3 merchant_data.db < utils/init.sql

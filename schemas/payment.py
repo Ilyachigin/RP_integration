@@ -47,13 +47,13 @@ class PaymentInfo(BaseModel):
 
 
 class ParamsBlock(BaseModel):
-    settings: Optional[Dict[str, Any]]
     params: Optional[InnerParams]
 
 
 class GatewayRequest(BaseModel):
     params: ParamsBlock
     payment: PaymentInfo
+    settings: Optional[Dict[str, Any]]
     processing_url: Optional[HttpUrl]
     callback_url: Optional[HttpUrl]
     callback_3ds_url: Optional[HttpUrl]
