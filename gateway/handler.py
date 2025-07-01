@@ -12,6 +12,7 @@ from utils.db import DatabaseStorage
 from schemas.payment import GatewayRequest
 from schemas.callback import GatewayCallback
 from schemas.status import GatewayStatus
+from utils.logger import logger
 
 from gateway.builder import (
     gateway_body,
@@ -28,7 +29,6 @@ async def handle_pay(data: GatewayRequest):
     url = f"{config.GATEWAY_URL}/api/v1/payments"
     raw_data = data.model_dump(exclude_none=True)
     gateway_payload = gateway_body(raw_data)
-
     bearer_token = raw_data.get("settings").get("bearer_token")
     headers = {
         "Authorization": f"Bearer {bearer_token}",
@@ -67,14 +67,25 @@ async def handle_callback(data: GatewayCallback):
         jwt_payload = {
             **callback_body,
             "secure": secure_data}
+
+        # TEMP
+        logger.info(f"JWT body: {jwt_payload}")
+
         jwt_token = callback_jwt(jwt_payload, config.SIGN_KEY)
 
         callback_headers = {
             "Authorization": f"Bearer {jwt_token}",
             "Content-Type": "application/json"
         }
+
+        # Temp
+        logger.info(f"Callback headers: {callback_headers}")
+
+        # Temp
+        logger.info(f"Callback body: {callback_body}")
+
         url = f"{config.BUSINESS_URL}/callbacks/v2/gateway_callbacks/{gateway_token}"
-        send_request('POST', url, callback_headers, gateway_token)
+        send_request('POST', url, callback_headers, callback_body)
     return Response(content="ok", status_code=200)
 
 
