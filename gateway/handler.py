@@ -9,9 +9,11 @@ from Crypto.Random import get_random_bytes
 import config
 from client.http import send_request
 from utils.db import DatabaseStorage
-from schemas.payment import GatewayRequest
+from schemas.payment import PaymentRequest
 from schemas.callback import GatewayCallback
 from schemas.status import GatewayStatus
+from schemas.refund import RefundRequest
+from schemas.payout import PayoutRequest
 from utils.logger import logger
 
 from gateway.builder import (
@@ -20,24 +22,39 @@ from gateway.builder import (
     gateway_pay_response,
     gateway_status_response,
     gateway_callback_body,
+    gateway_refund_body,
+    gateway_payout_body
 )
 
 db = DatabaseStorage()
 
 
-async def handle_pay(data: GatewayRequest):
+async def handle_pay(data: PaymentRequest):
     url = f"{config.GATEWAY_URL}/api/v1/payments"
     raw_data = data.model_dump(exclude_none=True)
     gateway_payload = gateway_body(raw_data)
+
     bearer_token = raw_data.get("settings").get("bearer_token")
-    headers = {
-        "Authorization": f"Bearer {bearer_token}",
-        "Content-Type": "application/json"
-    }
+    headers = headers_param(bearer_token)
+
     response = send_request('POST', url, headers, jsonable_encoder(gateway_payload))
     database_insert(response.get('response'), bearer_token)
 
     return response_handler('pay', response, url, gateway_payload, response['duration'])
+
+
+async def handle_payout(data: PayoutRequest):
+    url = f"{config.GATEWAY_URL}/api/v1/payouts"
+    raw_data = data.model_dump(exclude_none=True)
+    gateway_payload = gateway_payout_body(raw_data)
+
+    bearer_token = raw_data.get("settings").get("bearer_token")
+    headers = headers_param(bearer_token)
+
+    response = send_request('POST', url, headers, jsonable_encoder(gateway_payload))
+    database_insert(response.get('response'), bearer_token)
+
+    return response_handler('payout', response, url, gateway_payload, response['duration'])
 
 
 async def handle_status(data: GatewayStatus):
@@ -46,13 +63,25 @@ async def handle_status(data: GatewayStatus):
     url = f"{config.GATEWAY_URL}/api/v1/payments/{gateway_token}"
 
     bearer_token = raw_data.get("settings").get("bearer_token")
+    headers = headers_param(bearer_token)
+
+    response = send_request('GET', url, headers, gateway_token)
+    return response_handler('status', response, url, gateway_token, response['duration'])
+
+
+async def handle_refund(data: RefundRequest):
+    raw_data = data.model_dump(exclude_none=True)
+    gateway_payload = gateway_refund_body(raw_data)
+    url = f"{config.GATEWAY_URL}/api/v1/refunds"
+
+    bearer_token = raw_data.get("settings").get("bearer_token")
     headers = {
         "Authorization": f"Bearer {bearer_token}",
         "Content-Type": "application/json"
     }
 
-    response = send_request('GET', url, headers, gateway_token)
-    return response_handler('status', response, url, gateway_token, response['duration'])
+    response = send_request('POST', url, headers, jsonable_encoder(gateway_payload))
+    return response_handler('refund', response, url, gateway_payload, response['duration'])
 
 
 async def handle_callback(data: GatewayCallback):
@@ -66,7 +95,8 @@ async def handle_callback(data: GatewayCallback):
         secure_data = merchant_token_encrypt(bearer_token, config.SIGN_KEY)
         jwt_payload = {
             **callback_body,
-            "secure": secure_data}
+            "secure": secure_data
+        }
 
         # TEMP
         logger.info(f"JWT body: {jwt_payload}")
@@ -127,6 +157,13 @@ def merchant_token_encrypt(merchant_token: str, sign_key: str) -> dict:
     return {
         "encrypted_data": base64.b64encode(encrypted).decode('utf-8'),
         "iv_value": base64.b64encode(iv).decode('utf-8')
+    }
+
+
+def headers_param(bearer_token) -> dict:
+    return {
+        "Authorization": f"Bearer {bearer_token}",
+        "Content-Type": "application/json"
     }
 
 

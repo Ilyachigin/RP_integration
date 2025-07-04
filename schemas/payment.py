@@ -46,7 +46,7 @@ class PaymentInfo(BaseModel):
     redirect_fail_url: HttpUrl
 
 
-class GatewayRequest(BaseModel):
+class PaymentRequest(BaseModel):
     params: Optional[InnerParams]
     payment: PaymentInfo
     settings: Optional[Dict[str, Any]]

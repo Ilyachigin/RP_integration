@@ -76,12 +76,13 @@ def main_params(data: dict) -> Dict:
 
 
 def card_params(data: dict) -> Dict:
-    return {
+    params = {
         "pan": data.get("pan"),
         "expires": data.get("expires"),
         "holder": data.get("holder"),
         "cvv": data.get("cvv"),
     }
+    return {k: v for k, v in params.items() if v is not None}
 
 
 def response_redirect_params(redirect_request: dict, token: str) -> Dict:
@@ -138,6 +139,33 @@ def mask_data(data: dict) -> dict:
 
 def gateway_status_param(data: dict) -> str:
     return data.get("payment").get("gateway_token")
+
+
+def gateway_refund_body(data: dict) -> dict[str, Any]:
+    refund_amount = data.get("params").get("amount")
+    gateway_token = data.get("payment").get("gateway_token")
+
+    return {
+        "token": gateway_token,
+        "amount": refund_amount
+    }
+
+
+def gateway_payout_body(business_data: dict) -> dict[str, Any]:
+    main_dict = main_params(business_data)
+
+    card = business_data.get("params").get("card")
+    card_dict = card_params(card)
+
+    customer = business_data.get("params").get("customer")
+    customer_dict = customer_params(customer)
+    customer_data = {**customer_dict}
+
+    return {
+        **main_dict,
+        "card": card_dict,
+        "customer": customer_data
+    }
 
 
 def gateway_callback_body(data: dict) -> tuple[str | None, dict[str, str | int]]:
