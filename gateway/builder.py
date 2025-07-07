@@ -179,7 +179,7 @@ def gateway_callback_body(data: dict) -> tuple[str | None, dict[str, str | int]]
     return token, callback_body
 
 
-def gateway_pay_response(response: dict, request_url: str, request_data: dict, duration: float) -> Dict:
+def gateway_pay_response(request_type: str, response: dict, request_url: str, request_data: dict, duration: float) -> Dict:
     token = response.get("token")
 
     processing_url = response.get("processingUrl")

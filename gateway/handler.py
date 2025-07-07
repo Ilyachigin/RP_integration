@@ -169,8 +169,8 @@ def headers_param(bearer_token) -> dict:
 
 def response_handler(request_type, response, url, body, duration):
     if response["status"] == "ok":
-        if request_type == "pay":
-            return gateway_pay_response(response["response"], url, body, duration)
+        if request_type in ["pay", "payout"]:
+            return gateway_pay_response(request_type, response["response"], url, body, duration)
         elif request_type == "status":
             return gateway_status_response(response["response"], url, body, duration)
         return None
