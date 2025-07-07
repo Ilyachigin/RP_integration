@@ -191,7 +191,7 @@ def gateway_pay_response(request_type: str, response: dict, request_url: str, re
         "result": result,
         "processing_url": processing_url,
         "redirect_request": response_redirect_params(response.get("redirectRequest", {}), token),
-        "logs": response_logs_params('pay', request_url, request_data, response, duration)
+        "logs": response_logs_params(request_type, request_url, request_data, response, duration)
     }
 
 

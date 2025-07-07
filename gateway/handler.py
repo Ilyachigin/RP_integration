@@ -97,22 +97,11 @@ async def handle_callback(data: GatewayCallback):
             **callback_body,
             "secure": secure_data
         }
-
-        # TEMP
-        logger.info(f"JWT body: {jwt_payload}")
-
         jwt_token = callback_jwt(jwt_payload, config.SIGN_KEY)
-
         callback_headers = {
             "Authorization": f"Bearer {jwt_token}",
             "Content-Type": "application/json"
         }
-
-        # Temp
-        logger.info(f"Callback headers: {callback_headers}")
-
-        # Temp
-        logger.info(f"Callback body: {callback_body}")
 
         url = f"{config.BUSINESS_URL}/callbacks/v2/gateway_callbacks/{gateway_token}"
         send_request('POST', url, callback_headers, callback_body)

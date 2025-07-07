@@ -7,7 +7,6 @@ class StatusParams(BaseModel):
 
 class GatewayStatus(BaseModel):
     settings: Optional[Dict[str, Any]]
-    params: Optional[Dict[str, Any]]
     payment: StatusParams
     method_name: str
 
