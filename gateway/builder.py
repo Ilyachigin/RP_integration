@@ -69,7 +69,7 @@ def main_params(data: dict) -> Dict:
         "extra_return_param": data.get("params").get("extra_return_param"),
         "order_number": data.get("params").get("order_number"),
         "redirect_success_url": data.get("payment", {}).get("redirect_success_url"),
-        "redirect_fail_url": data.get("payment", {}).get("redirect_fail_url"),
+        "weqe": data.get("payment", {}).get("redirect_fail_url"),
         "callback_url": f"{config.BASE_URL}/callback"
     }
     return {k: v for k, v in params.items() if v is not None}
@@ -170,12 +170,16 @@ def gateway_payout_body(business_data: dict) -> dict[str, Any]:
 
 def gateway_callback_body(data: dict) -> tuple[str | None, dict[str, str | int]]:
     token = data.get("token")
-
+    status = data.get("status")
     callback_body = {
-        "status": data.get("status"),
+        "status": status,
         "currency": data.get("currency"),
         "amount": data.get("amount")
     }
+    if status == "declined":
+        declination_reason = data.get("gatewayDetails", "").get("decline_reason", "")
+        callback_body["reason"] = declination_reason.replace("gateway response error: ", "").strip()
+
     return token, callback_body
 
 
