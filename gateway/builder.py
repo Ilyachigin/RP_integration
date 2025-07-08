@@ -69,7 +69,7 @@ def main_params(data: dict) -> Dict:
         "extra_return_param": data.get("params").get("extra_return_param"),
         "order_number": data.get("params").get("order_number"),
         "redirect_success_url": data.get("payment", {}).get("redirect_success_url"),
-        "weqe": data.get("payment", {}).get("redirect_fail_url"),
+        "redirect_fail_url": data.get("payment", {}).get("redirect_fail_url"),
         "callback_url": f"{config.BASE_URL}/callback"
     }
     return {k: v for k, v in params.items() if v is not None}
